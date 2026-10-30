@@ -1,0 +1,18 @@
+{
+  "width": 5760,
+  "height": 2880,
+  "firstLon": 0.03125,
+  "firstLat": 89.96875,
+  "stepDegrees": 0.0625,
+  "unit": "metres",
+  "encoding": "int16-le",
+  "radiusKm": 1737.4,
+  "minKm": -8.981500625610352,
+  "maxKm": 10.685500144958496,
+  "source": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_16.tif",
+  "dataset": "LRO LOLA global gridded elevation, NASA CGI Moon Kit ldem_16.tif",
+  "processing": "Floating-point km rounded to integer metres; columns rolled from -180..180 to 0..360 E; native 16 pixels/degree retained. Bilinear interpolation for display.",
+  "textureSource": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_8k.tif",
+  "textureWidth": 8192,
+  "textureHeight": 4096
+}
