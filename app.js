@@ -143,6 +143,23 @@ function lightUpdate(){const angle=+$('sun').value*rad;let base=mode==='globe'?c
 function zoom(factor){if(!ready)return;transition=null;const offset=camera.position.clone().sub(controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*factor,controls.minDistance,controls.maxDistance));camera.position.copy(controls.target).add(offset);controls.update();}
 function renderLabels(){for(const item of labelItems){if(mode!=='globe'||!$('showLabels').checked){item.el.hidden=true;continue;}const v=spherePoint(item.place.lat,item.place.lon).multiplyScalar(1.001);const facing=v.dot(camera.position.clone().sub(v))>0;v.project(camera);const visible=facing&&Math.abs(v.x)<.95&&Math.abs(v.y)<.95&&v.z<1;item.el.hidden=!visible;if(visible){item.el.style.left=`${(v.x+1)*viewWidth/2}px`;item.el.style.top=`${(1-v.y)*viewHeight/2}px`;}}}
 function resize(){const r=$('viewport').getBoundingClientRect();viewWidth=Math.max(1,r.width);viewHeight=Math.max(1,r.height);camera.aspect=viewWidth/viewHeight;camera.updateProjectionMatrix();renderer.setSize(viewWidth,viewHeight);}
+function updateGlobeHeading() {
+ if (mode !== 'globe') return;
+ const distance = camera.position.length();
+ if (!distance) return;
+ const pole = camera.position.y / distance;
+ const earthward = camera.position.z / distance;
+ let title;
+ if (Math.abs(pole) > Math.cos(15 * rad)) {
+   title = pole > 0 ? '月の北極側' : '月の南極側';
+ } else if (Math.abs(earthward) < Math.sin(10 * rad)) {
+   title = '月の表と裏の境目';
+ } else {
+   title = earthward > 0 ? '月の表側' : '月の裏側';
+ }
+ const heading = $('viewTitle');
+ if (heading.textContent !== title) heading.textContent = title;
+}
 function animate(t){requestAnimationFrame(animate);if(!ready)return;if(transition){const f=Math.min(1,(t-transition.start)/transition.duration),a=f*f*(3-2*f);camera.position.lerpVectors(transition.from,transition.to,a);controls.target.lerpVectors(transition.startTarget,transition.target,a);if(f===1)transition=null;}controls.update();if(mode==='terrain'){
  // Keep the observer above the displayed surface even after a low-angle pan.
  controls.target.x=THREE.MathUtils.clamp(controls.target.x,-.10,.10);controls.target.z=THREE.MathUtils.clamp(controls.target.z,-.10,.10);
@@ -151,7 +168,7 @@ function animate(t){requestAnimationFrame(animate);if(!ready)return;if(transitio
  // Prevent a panned orbit from going through the globe.
  const ll=lonLat(camera.position.x,camera.position.y,camera.position.z),min=1+elevation(ll.lat,ll.lon)*exaggeration/RADIUS+.015;if(camera.position.length()<min)camera.position.setLength(min);
  }
- positionLandingRings();positionLandingName();lightUpdate();renderer.render(scene,camera);renderLabels();if(!hovering){const dist=camera.position.distanceTo(controls.target)*RADIUS;$('distance').textContent=`注視点まで ${Math.round(dist).toLocaleString()} km`;}}
+ updateGlobeHeading();positionLandingRings();positionLandingName();lightUpdate();renderer.render(scene,camera);renderLabels();if(!hovering){const dist=camera.position.distanceTo(controls.target)*RADIUS;$('distance').textContent=`注視点まで ${Math.round(dist).toLocaleString()} km`;}}
 
 async function boot(){
  try{
