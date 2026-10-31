@@ -54,12 +54,46 @@ function geometry(local=false){
 }
 function updateRelief(mesh){if(!mesh)return;const g=mesh.geometry,{directions,elevations,local}=g.userData,p=g.attributes.position.array;for(let i=0;i<elevations.length;i++){const s=1+elevations[i]*exaggeration/RADIUS;p[i*3]=directions[i*3]*s;p[i*3+1]=directions[i*3+1]*s-(local?1:0);p[i*3+2]=directions[i*3+2]*s;}g.attributes.position.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();}
 function makeGrid(){if(grid){scene.remove(grid);grid.geometry.dispose();grid.material.dispose();}const points=[];function add(lat1,lon1,lat2,lon2){const p=spherePoint(lat1,lon1).multiplyScalar(1.001),q=spherePoint(lat2,lon2).multiplyScalar(1.001);points.push(...p.toArray(),...q.toArray());}for(let lat=-60;lat<=60;lat+=30)for(let lon=-180;lon<180;lon++)add(lat,lon,lat,lon+1);for(let lon=-180;lon<180;lon+=30)for(let lat=-90;lat<90;lat++)add(lat,lon,lat+1,lon);const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(points,3));grid=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:0xb8cbd7,transparent:true,opacity:.2}));grid.visible=$('grid').checked&&mode==='globe';scene.add(grid);}
-function setModeUI(){const local=mode==='terrain';$('globeBtn').classList.toggle('active',!local);$('terrainBtn').classList.toggle('active',local);$('modeTag').textContent=local?'TERRAIN VIEW':'GLOBAL VIEW';$('viewTitle').textContent=local?selected.name||'選んだ月面':selected.name||'月の表側';$('viewSub').textContent=local?'ドラッグして、クレーターを斜めから。':'月面をダブルクリックすると、その場所へ接近。';$('grid').disabled=local;$('showLabels').disabled=local;$('auto').checked=false;controls.autoRotate=false;grid.visible=!local&&$('grid').checked;status(local?'地域の立体地形 · 元データ 約1.9 km 間隔':'LRO LOLA · 元データ 約1.9 km 間隔');}
+function setModeUI(){captionSite=null;ringCaption.hidden=true;const local=mode==='terrain';$('globeBtn').classList.toggle('active',!local);$('terrainBtn').classList.toggle('active',local);$('modeTag').textContent=local?'TERRAIN VIEW':'GLOBAL VIEW';$('viewTitle').textContent=local?selected.name||'選んだ月面':selected.name||'月の表側';$('viewSub').textContent=local?'ドラッグして、クレーターを斜めから。':'月面をダブルクリックすると、その場所へ接近。';$('grid').disabled=local;$('showLabels').disabled=local;$('auto').checked=false;controls.autoRotate=false;grid.visible=!local&&$('grid').checked;status(local?'地域の立体地形 · 元データ 約1.9 km 間隔':'LRO LOLA · 元データ 約1.9 km 間隔');}
 function fly(pos,target,duration=650){transition={from:camera.position.clone(),to:pos.clone(),startTarget:controls.target.clone(),target:target.clone(),start:performance.now(),duration:reduced?1:duration};}
 function globeView(lat=12,lon=-8,dist=3.3){if(!ready)return;const wasLocal=mode==='terrain';mode='globe';globe.visible=true;if(patch)patch.visible=false;camera.up.set(0,1,0);controls.minPolarAngle=.005;controls.maxPolarAngle=Math.PI-.005;controls.minDistance=1.13;controls.maxDistance=7;controls.enablePan=true;controls.target.set(0,0,0);controls.update();camera.near=.001;camera.far=50;camera.updateProjectionMatrix();setModeUI();const dest=direction(lat,lon).multiplyScalar(dist);if(wasLocal){camera.position.copy(dest);controls.update();transition=null;}else fly(dest,new THREE.Vector3());updateMarker();}
 function terrainView(){if(!ready)return;transition=null;mode='terrain';const n=direction(selected.lat,selected.lon),e=new THREE.Vector3(Math.cos(selected.lon*rad),0,-Math.sin(selected.lon*rad)),north=n.clone().cross(e).normalize();basis={n,e,north};if(patch){scene.remove(patch);patch.geometry.dispose();}patch=new THREE.Mesh(geometry(true),material);scene.add(patch);globe.visible=false;grid.visible=false;marker.visible=false;camera.up.set(0,1,0);const h=elevation(selected.lat,selected.lon)*exaggeration/RADIUS;controls.target.set(0,h,0);camera.position.set(.035,h+.18,.24);controls.minPolarAngle=.05;controls.maxPolarAngle=1.42;controls.minDistance=.025;controls.maxDistance=.75;controls.update();setModeUI();readout(selected.lat,selected.lon);}
 function choose(place,local=mode==='terrain'){selected={...place};$('lat').value=place.lat.toFixed(3);$('lon').value=place.lon.toFixed(3);document.querySelectorAll('#places button').forEach((el,i)=>el.classList.toggle('selected',places[i].name===place.name));if(local)terrainView();else globeView(place.lat,place.lon,2.25);readout(place.lat,place.lon);}
 const landingSites = [];
+const ringCaption = document.createElement('span');
+ringCaption.setAttribute('role', 'status');
+ringCaption.style.cssText = 'position:absolute;z-index:2;pointer-events:none;padding:5px 8px;border-radius:5px;background:#111b25;color:#ffe4aa;font-size:12px;white-space:pre-line;line-height:1.5';
+ringCaption.hidden = true;
+$('labels').appendChild(ringCaption);
+let captionSite = null;
+function showLandingName(event) {
+ const rect = renderer.domElement.getBoundingClientRect();
+ const x = event.clientX - rect.left, y = event.clientY - rect.top;
+ const matches = [];
+ for (const site of landingSites) {
+   if (!site.ring.visible) continue;
+   const p = site.ring.position.clone().project(camera);
+   if (Math.abs(p.z) > 1) continue;
+   const distance = Math.hypot((p.x + 1) * rect.width / 2 - x, (1 - p.y) * rect.height / 2 - y);
+   if (distance <= 11) matches.push({site, distance});
+ }
+ matches.sort((a,b) => a.distance - b.distance);
+ captionSite = matches[0]?.site || null;
+ ringCaption.hidden = !captionSite;
+ if (!captionSite) return false;
+ const names = matches.flatMap(({site}) => site.name.split('（')[0].split('・'));
+ ringCaption.textContent = [...new Set(names)].join(' / ');
+ readout(captionSite.lat, captionSite.lon);
+ return true;
+}
+function positionLandingName() {
+ if (!captionSite) return;
+ const p = captionSite.ring.position.clone().project(camera);
+ ringCaption.hidden = !captionSite.ring.visible || Math.max(Math.abs(p.x), Math.abs(p.y), Math.abs(p.z)) > 1;
+ if (ringCaption.hidden) return;
+ ringCaption.style.left = Math.max(0, Math.min(viewWidth - ringCaption.offsetWidth, (p.x+1)*viewWidth/2 + 12)) + 'px';
+ ringCaption.style.top = Math.max(0, Math.min(viewHeight - ringCaption.offsetHeight, (1-p.y)*viewHeight/2 - 16)) + 'px';
+}
 function createLandingRings() {
  const canvas = document.createElement('canvas');
  canvas.width = canvas.height = 64;
@@ -79,7 +113,7 @@ function createLandingRings() {
    const ring = new THREE.Sprite(material);
    ring.renderOrder = 5;
    scene.add(ring);
-   landingSites.push({ring, lat:Number(option.dataset.lat), lon:Number(option.dataset.lon)});
+   landingSites.push({ring, name:option.textContent, lat:Number(option.dataset.lat), lon:Number(option.dataset.lon)});
  }
 }
 function positionLandingRings() {
@@ -113,7 +147,7 @@ function animate(t){requestAnimationFrame(animate);if(!ready)return;if(transitio
  // Prevent a panned orbit from going through the globe.
  const ll=lonLat(camera.position.x,camera.position.y,camera.position.z),min=1+elevation(ll.lat,ll.lon)*exaggeration/RADIUS+.015;if(camera.position.length()<min)camera.position.setLength(min);
  }
- positionLandingRings();lightUpdate();renderer.render(scene,camera);renderLabels();if(!hovering){const dist=camera.position.distanceTo(controls.target)*RADIUS;$('distance').textContent=`注視点まで ${Math.round(dist).toLocaleString()} km`;}}
+ positionLandingRings();positionLandingName();lightUpdate();renderer.render(scene,camera);renderLabels();if(!hovering){const dist=camera.position.distanceTo(controls.target)*RADIUS;$('distance').textContent=`注視点まで ${Math.round(dist).toLocaleString()} km`;}}
 
 async function boot(){
  try{
@@ -133,7 +167,7 @@ async function boot(){
  ready=true;selected={...places[0]};globeView();transition=null;$('viewTitle').textContent='月の表側';$('viewSub').textContent='ドラッグして、月の裏側へ。';readout(selected.lat,selected.lon);$('loading').hidden=true;resize();new ResizeObserver(resize).observe($('viewport'));requestAnimationFrame(animate);wireCanvas();
  }catch(e){console.error(e);$('loadText').textContent='月面を読み込めませんでした。通信環境とWebGLを確認して、再読み込みしてください。';const b=document.createElement('button');b.textContent='再読み込み';b.style.padding='10px 20px';b.onclick=()=>location.reload();$('loading').appendChild(b);status('読み込みエラー');}
 }
-function wireCanvas(){let down=null;const canvas=renderer.domElement;canvas.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};});canvas.addEventListener('pointerup',e=>{if(e.button!==0||!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)return;const ll=hit(e);if(ll){readout(ll.lat,ll.lon);if(mode==='globe'){selected={...ll,name:'選んだ月面'};$('lat').value=ll.lat.toFixed(3);$('lon').value=ll.lon.toFixed(3);updateMarker();document.querySelectorAll('#places button').forEach(el=>el.classList.remove('selected'));}}});canvas.addEventListener('dblclick',e=>{const ll=hit(e);if(ll)choose({...ll,name:'選んだ月面'},true);});canvas.addEventListener('pointermove',e=>{if(e.buttons||performance.now()-lastHover<90)return;lastHover=performance.now();const ll=hit(e);if(ll){readout(ll.lat,ll.lon);canvas.style.cursor='crosshair';}else canvas.style.cursor='grab';});canvas.addEventListener('pointerleave',()=>readout(selected.lat,selected.lon));}
+function wireCanvas(){let down=null;const canvas=renderer.domElement;canvas.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};});canvas.addEventListener('pointerup',e=>{if(e.button!==0||!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)return;if(showLandingName(e))return;const ll=hit(e);if(ll){readout(ll.lat,ll.lon);if(mode==='globe'){selected={...ll,name:'選んだ月面'};$('lat').value=ll.lat.toFixed(3);$('lon').value=ll.lon.toFixed(3);updateMarker();document.querySelectorAll('#places button').forEach(el=>el.classList.remove('selected'));}}});canvas.addEventListener('dblclick',e=>{const ll=hit(e);if(ll)choose({...ll,name:'選んだ月面'},true);});canvas.addEventListener('pointermove',e=>{if(e.buttons||performance.now()-lastHover<90)return;lastHover=performance.now();const ll=hit(e);if(ll){readout(ll.lat,ll.lon);canvas.style.cursor='crosshair';}else canvas.style.cursor='grab';});canvas.addEventListener('pointerleave',()=>readout(selected.lat,selected.lon));}
 places.forEach(p=>{const b=document.createElement('button');const name=document.createElement('span');name.textContent=p.name;const sub=document.createElement('small');sub.textContent=p.sub;b.append(name,sub);b.addEventListener('click',()=>{if(ready)choose(p);});$('places').appendChild(b);});
 $('globeBtn').onclick=()=>globeView(selected.lat,selected.lon,3.3);$('terrainBtn').onclick=terrainView;
 $('coords').onsubmit=e=>{e.preventDefault();if(ready)choose({lat:+$('lat').value,lon:((+$('lon').value+180)%360+360)%360-180,name:'指定した月面'});};
