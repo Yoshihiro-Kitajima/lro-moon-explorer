@@ -29,7 +29,8 @@ document.getElementById('missionSelect').addEventListener('change', function () 
   if (!place.value) return;
   const photo = document.getElementById('missionImage');
   photo.href = new URL(place.value, 'https://science.nasa.gov/').href;
-  photo.textContent = place.textContent + (place.textContent.startsWith('アポロ') ? 'の詳細なマップを見る ↗' : 'の実写を見る ↗');
+  const apollo = place.textContent.match(/^アポロ[0-9]+号/);
+  photo.textContent = apollo ? apollo[0] + 'の詳細なマップを見る ↗' : place.textContent + 'の実写を見る ↗';
   document.getElementById('lat').value = place.dataset.lat;
   document.getElementById('lon').value = place.dataset.lon;
   document.getElementById('coords').requestSubmit();
