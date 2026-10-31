@@ -15,6 +15,11 @@
 <option data-lat="26.132" data-lon="3.634" value="photojournal/retracing-the-steps-of-apollo-15/">アポロ15号（月面車の走行跡）</option>
 <option data-lat="-8.973" data-lon="15.501" value="photojournal/apollo-16-footsteps-under-high-sun/">アポロ16号（デカルト高地）</option>
 <option data-lat="20.19" data-lon="30.77" value="image-article/apod-2011-september-8-apollo-17-site-a-sharper-view/">アポロ17号・月面車</option>
+<option data-lat="-2.4745" data-lon="-43.3398" value="https://www.lroc.im-ldi.com/featured_sites/surveyor-1/flip-book">サーベイヤー1号</option>
+<option data-lat="-3.0162" data-lon="-23.4180" value="photojournal/first-look-apollo-12-and-surveyor-3/">サーベイヤー3号</option>
+<option data-lat="1.4551" data-lon="23.1943" value="photojournal/surveyor-5-a-hole-in-one/">サーベイヤー5号</option>
+<option data-lat="0.4742" data-lon="-1.4275" value="https://www.lroc.im-ldi.com/featured_sites/surveyor-6/site_images">サーベイヤー6号</option>
+<option data-lat="-40.9812" data-lon="-11.5127" value="https://www.lroc.im-ldi.com/featured_sites/surveyor-7/flip-book">サーベイヤー7号</option>
 <option data-lat="38.24" data-lon="-35.00" value="photojournal/soviet-union-lunar-rovers/">ルナ17号（雨の海）</option></select>
 <p><a id="missionImage" target="_blank" rel="noopener" href="https://science.nasa.gov/resource/apollo-11-landing-site/">アポロ11号の実写を見る ↗</a></p>
 <small>位置は概略。写真提供 NASA / GSFC / ASU</small></details>
@@ -23,7 +28,7 @@ document.getElementById('missionSelect').addEventListener('change', function () 
   const place = this.selectedOptions[0];
   if (!place.value) return;
   const photo = document.getElementById('missionImage');
-  photo.href = 'https://science.nasa.gov/' + place.value;
+  photo.href = new URL(place.value, 'https://science.nasa.gov/').href;
   photo.textContent = place.textContent + 'の実写を見る ↗';
   document.getElementById('lat').value = place.dataset.lat;
   document.getElementById('lon').value = place.dataset.lon;
