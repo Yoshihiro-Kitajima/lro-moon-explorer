@@ -66,7 +66,7 @@ ringCaption.style.cssText = 'position:absolute;z-index:2;pointer-events:none;pad
 ringCaption.hidden = true;
 $('labels').appendChild(ringCaption);
 let captionSite = null;
-function showLandingName(event) {
+function nearbyLandingSites(event) {
  const rect = renderer.domElement.getBoundingClientRect();
  const x = event.clientX - rect.left, y = event.clientY - rect.top;
  const matches = [];
@@ -78,6 +78,10 @@ function showLandingName(event) {
    if (distance <= 11) matches.push({site, distance});
  }
  matches.sort((a,b) => a.distance - b.distance);
+ return matches;
+}
+function showLandingName(event) {
+ const matches = nearbyLandingSites(event);
  captionSite = matches[0]?.site || null;
  ringCaption.hidden = !captionSite;
  if (!captionSite) return false;
@@ -167,7 +171,7 @@ async function boot(){
  ready=true;selected={...places[0]};globeView();transition=null;$('viewTitle').textContent='月の表側';$('viewSub').textContent='ドラッグして、月の裏側へ。';readout(selected.lat,selected.lon);$('loading').hidden=true;resize();new ResizeObserver(resize).observe($('viewport'));requestAnimationFrame(animate);wireCanvas();
  }catch(e){console.error(e);$('loadText').textContent='月面を読み込めませんでした。通信環境とWebGLを確認して、再読み込みしてください。';const b=document.createElement('button');b.textContent='再読み込み';b.style.padding='10px 20px';b.onclick=()=>location.reload();$('loading').appendChild(b);status('読み込みエラー');}
 }
-function wireCanvas(){let down=null;const canvas=renderer.domElement;canvas.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};});canvas.addEventListener('pointerup',e=>{if(e.button!==0||!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)return;if(showLandingName(e))return;const ll=hit(e);if(ll){readout(ll.lat,ll.lon);if(mode==='globe'){selected={...ll,name:'選んだ月面'};$('lat').value=ll.lat.toFixed(3);$('lon').value=ll.lon.toFixed(3);updateMarker();document.querySelectorAll('#places button').forEach(el=>el.classList.remove('selected'));}}});canvas.addEventListener('dblclick',e=>{const ll=hit(e);if(ll)choose({...ll,name:'選んだ月面'},true);});canvas.addEventListener('pointermove',e=>{if(e.buttons||performance.now()-lastHover<90)return;lastHover=performance.now();const ll=hit(e);if(ll){readout(ll.lat,ll.lon);canvas.style.cursor='crosshair';}else canvas.style.cursor='grab';});canvas.addEventListener('pointerleave',()=>readout(selected.lat,selected.lon));}
+function wireCanvas(){let down=null;const canvas=renderer.domElement;canvas.style.cursor='grab';const hand=e=>{canvas.style.cursor=e.buttons?'grabbing':nearbyLandingSites(e).length?'pointer':'grab';};canvas.addEventListener('pointercancel',()=>{canvas.style.cursor='grab';down=null;});canvas.addEventListener('pointerdown',e=>{hand(e);down={x:e.clientX,y:e.clientY};});canvas.addEventListener('pointerup',e=>{hand(e);if(e.button!==0||!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)return;if(showLandingName(e))return;const ll=hit(e);if(ll){readout(ll.lat,ll.lon);if(mode==='globe'){selected={...ll,name:'選んだ月面'};$('lat').value=ll.lat.toFixed(3);$('lon').value=ll.lon.toFixed(3);updateMarker();document.querySelectorAll('#places button').forEach(el=>el.classList.remove('selected'));}}});canvas.addEventListener('dblclick',e=>{const ll=hit(e);if(ll)choose({...ll,name:'選んだ月面'},true);});canvas.addEventListener('pointermove',e=>{hand(e);if(e.buttons||performance.now()-lastHover<90)return;lastHover=performance.now();const ll=hit(e);if(ll){readout(ll.lat,ll.lon);}});canvas.addEventListener('pointerleave',()=>readout(selected.lat,selected.lon));}
 places.forEach(p=>{const b=document.createElement('button');const name=document.createElement('span');name.textContent=p.name;const sub=document.createElement('small');sub.textContent=p.sub;b.append(name,sub);b.addEventListener('click',()=>{if(ready)choose(p);});$('places').appendChild(b);});
 $('globeBtn').onclick=()=>globeView(selected.lat,selected.lon,3.3);$('terrainBtn').onclick=terrainView;
 $('coords').onsubmit=e=>{e.preventDefault();if(ready)choose({lat:+$('lat').value,lon:((+$('lon').value+180)%360+360)%360-180,name:'指定した月面'});};
