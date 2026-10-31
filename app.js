@@ -59,6 +59,46 @@ function fly(pos,target,duration=650){transition={from:camera.position.clone(),t
 function globeView(lat=12,lon=-8,dist=3.3){if(!ready)return;const wasLocal=mode==='terrain';mode='globe';globe.visible=true;if(patch)patch.visible=false;camera.up.set(0,1,0);controls.minPolarAngle=.005;controls.maxPolarAngle=Math.PI-.005;controls.minDistance=1.13;controls.maxDistance=7;controls.enablePan=true;controls.target.set(0,0,0);controls.update();camera.near=.001;camera.far=50;camera.updateProjectionMatrix();setModeUI();const dest=direction(lat,lon).multiplyScalar(dist);if(wasLocal){camera.position.copy(dest);controls.update();transition=null;}else fly(dest,new THREE.Vector3());updateMarker();}
 function terrainView(){if(!ready)return;transition=null;mode='terrain';const n=direction(selected.lat,selected.lon),e=new THREE.Vector3(Math.cos(selected.lon*rad),0,-Math.sin(selected.lon*rad)),north=n.clone().cross(e).normalize();basis={n,e,north};if(patch){scene.remove(patch);patch.geometry.dispose();}patch=new THREE.Mesh(geometry(true),material);scene.add(patch);globe.visible=false;grid.visible=false;marker.visible=false;camera.up.set(0,1,0);const h=elevation(selected.lat,selected.lon)*exaggeration/RADIUS;controls.target.set(0,h,0);camera.position.set(.035,h+.18,.24);controls.minPolarAngle=.05;controls.maxPolarAngle=1.42;controls.minDistance=.025;controls.maxDistance=.75;controls.update();setModeUI();readout(selected.lat,selected.lon);}
 function choose(place,local=mode==='terrain'){selected={...place};$('lat').value=place.lat.toFixed(3);$('lon').value=place.lon.toFixed(3);document.querySelectorAll('#places button').forEach((el,i)=>el.classList.toggle('selected',places[i].name===place.name));if(local)terrainView();else globeView(place.lat,place.lon,2.25);readout(place.lat,place.lon);}
+const landingSites = [];
+function createLandingRings() {
+ const canvas = document.createElement('canvas');
+ canvas.width = canvas.height = 64;
+ const pen = canvas.getContext('2d');
+ pen.beginPath();
+ pen.arc(32, 32, 23, 0, Math.PI * 2);
+ for (const [width, color] of [[12, '#251710'], [6, '#ffbb44']]) {
+   pen.lineWidth = width;
+   pen.strokeStyle = color;
+   pen.stroke();
+ }
+ const material = new THREE.SpriteMaterial({
+   map: new THREE.CanvasTexture(canvas), transparent: true,
+   depthWrite: false, depthTest: false, sizeAttenuation: false
+ });
+ for (const option of document.querySelectorAll('#missionSelect option[data-lat]')) {
+   const ring = new THREE.Sprite(material);
+   ring.renderOrder = 5;
+   scene.add(ring);
+   landingSites.push({ring, lat:Number(option.dataset.lat), lon:Number(option.dataset.lon)});
+ }
+}
+function positionLandingRings() {
+ for (const {ring, lat, lon} of landingSites) {
+   const point = spherePoint(lat, lon);
+   if (mode === 'globe') {
+     ring.position.copy(point);
+     ring.visible = point.dot(camera.position) > point.lengthSq();
+   } else {
+     const up = point.dot(basis.n);
+     const east = point.dot(basis.e);
+     const north = point.dot(basis.north);
+     ring.visible = up > 0 && Math.abs(east / up) < .14 && Math.abs(north / up) < .14;
+     ring.position.set(east, up - 1, -north);
+   }
+   const active = Math.abs(selected.lat - lat) < .0006 && Math.abs(selected.lon - lon) < .0006;
+   ring.scale.setScalar((active ? 24 : 15) * 2 * Math.tan(camera.fov * rad / 2) / viewHeight);
+ }
+}
 function updateMarker(){if(!marker||!ready)return;marker.visible=mode==='globe';marker.position.copy(spherePoint(selected.lat,selected.lon).multiplyScalar(1.002));}
 function hit(event){const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);const h=raycaster.intersectObject(mode==='globe'?globe:patch,false)[0];if(!h)return null;let p=h.point;if(mode==='terrain')p=basis.n.clone().multiplyScalar(1+p.y).addScaledVector(basis.e,p.x).addScaledVector(basis.north,-p.z);return lonLat(p.x,p.y,p.z);}
 function lightUpdate(){const angle=+$('sun').value*rad;let base=mode==='globe'?camera.position.clone().sub(controls.target).normalize():new THREE.Vector3(0,.7,1).normalize();base.applyAxisAngle(new THREE.Vector3(0,1,0),angle);sun.position.copy(base.multiplyScalar(5));ambient.intensity=$('topo').checked?1.8:1.0;}
@@ -73,7 +113,7 @@ function animate(t){requestAnimationFrame(animate);if(!ready)return;if(transitio
  // Prevent a panned orbit from going through the globe.
  const ll=lonLat(camera.position.x,camera.position.y,camera.position.z),min=1+elevation(ll.lat,ll.lon)*exaggeration/RADIUS+.015;if(camera.position.length()<min)camera.position.setLength(min);
  }
- lightUpdate();renderer.render(scene,camera);renderLabels();if(!hovering){const dist=camera.position.distanceTo(controls.target)*RADIUS;$('distance').textContent=`注視点まで ${Math.round(dist).toLocaleString()} km`;}}
+ positionLandingRings();lightUpdate();renderer.render(scene,camera);renderLabels();if(!hovering){const dist=camera.position.distanceTo(controls.target)*RADIUS;$('distance').textContent=`注視点まで ${Math.round(dist).toLocaleString()} km`;}}
 
 async function boot(){
  try{
@@ -88,7 +128,7 @@ async function boot(){
  material=new THREE.MeshStandardMaterial({map:texture,roughness:1,metalness:0});
  $('loadText').textContent='実測標高から月面を組み立てています…';await new Promise(r=>setTimeout(r,30));
  globe=new THREE.Mesh(geometry(),material);scene.add(globe);ambient=new THREE.AmbientLight(0xffffff,1);sun=new THREE.DirectionalLight(0xfff5e7,2.5);scene.add(ambient,sun);
- marker=new THREE.Mesh(new THREE.SphereGeometry(.004,12,8),new THREE.MeshBasicMaterial({color:0xf2d0a0}));scene.add(marker);makeGrid();
+ marker=new THREE.Mesh(new THREE.SphereGeometry(.004,12,8),new THREE.MeshBasicMaterial({color:0xf2d0a0}));scene.add(marker);makeGrid();createLandingRings();
  for(const place of places){const el=document.createElement('button');el.className='map-label';el.textContent=place.name;el.addEventListener('click',()=>choose(place));$('labels').appendChild(el);labelItems.push({el,place});}
  ready=true;selected={...places[0]};globeView();transition=null;$('viewTitle').textContent='月の表側';$('viewSub').textContent='ドラッグして、月の裏側へ。';readout(selected.lat,selected.lon);$('loading').hidden=true;resize();new ResizeObserver(resize).observe($('viewport'));requestAnimationFrame(animate);wireCanvas();
  }catch(e){console.error(e);$('loadText').textContent='月面を読み込めませんでした。通信環境とWebGLを確認して、再読み込みしてください。';const b=document.createElement('button');b.textContent='再読み込み';b.style.padding='10px 20px';b.onclick=()=>location.reload();$('loading').appendChild(b);status('読み込みエラー');}
