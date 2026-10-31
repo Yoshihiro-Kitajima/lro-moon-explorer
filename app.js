@@ -6,7 +6,7 @@ const places=[
  {name:'ティコ',sub:'光条の広がるクレーター',lat:-43.3,lon:-11.4},
  {name:'コペルニクス',sub:'中央峰と段状の壁',lat:9.6,lon:-20.1},
  {name:'プラトー',sub:'雨の海の北のほとり',lat:51.6,lon:-9.4},
- {name:'静かの海',sub:'アポロ11号の着陸地域',lat:0.7,lon:23.5},
+ {name:'静かの海',sub:'アポロ11号の着陸地域',lat:0.674,lon:23.473},
  {name:'ツィオルコフスキー',sub:'月の裏側の暗い床',lat:-20.4,lon:129},
  {name:'南極周辺',sub:'極域を斜めから見る',lat:-88,lon:0}
 ];
@@ -133,11 +133,19 @@ function positionLandingRings() {
      ring.visible = up > 0 && Math.abs(east / up) < .14 && Math.abs(north / up) < .14;
      ring.position.set(east, up - 1, -north);
    }
-   const active = Math.abs(selected.lat - lat) < .0006 && Math.abs(selected.lon - lon) < .0006;
+   const active = isSelectedLandingSite(lat, lon);
    ring.scale.setScalar((active ? 24 : 15) * 2 * Math.tan(camera.fov * rad / 2) / viewHeight);
  }
 }
-function updateMarker(){if(!marker||!ready)return;marker.visible=mode==='globe';marker.position.copy(spherePoint(selected.lat,selected.lon).multiplyScalar(1.002));}
+function isSelectedLandingSite(lat, lon) {
+ return Math.abs(selected.lat - lat) < .0006 && Math.abs(selected.lon - lon) < .0006;
+}
+function updateMarker() {
+ if (!marker || !ready) return;
+ const hasLandingRing = landingSites.some(site => isSelectedLandingSite(site.lat, site.lon));
+ marker.visible = mode === 'globe' && !hasLandingRing;
+ if (marker.visible) marker.position.copy(spherePoint(selected.lat, selected.lon).multiplyScalar(1.002));
+}
 function hit(event){const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);const h=raycaster.intersectObject(mode==='globe'?globe:patch,false)[0];if(!h)return null;let p=h.point;if(mode==='terrain')p=basis.n.clone().multiplyScalar(1+p.y).addScaledVector(basis.e,p.x).addScaledVector(basis.north,-p.z);return lonLat(p.x,p.y,p.z);}
 function lightUpdate(){const angle=+$('sun').value*rad;let base=mode==='globe'?camera.position.clone().sub(controls.target).normalize():new THREE.Vector3(0,.7,1).normalize();base.applyAxisAngle(new THREE.Vector3(0,1,0),angle);sun.position.copy(base.multiplyScalar(5));ambient.intensity=$('topo').checked?1.8:1.0;}
 function zoom(factor){if(!ready)return;transition=null;const offset=camera.position.clone().sub(controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*factor,controls.minDistance,controls.maxDistance));camera.position.copy(controls.target).add(offset);controls.update();}
