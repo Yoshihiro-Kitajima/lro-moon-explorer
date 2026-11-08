@@ -32,3 +32,5 @@ h1 em{font-size:12.5px;letter-spacing:.02em;font-style:normal;color:var(--accent
 .phead .pmin-btn+button{margin-left:4px}
 .pstats{font-size:13px}.pstats b{font-size:15px}
 @media(max-width:700px){#profile{left:8px;right:8px;width:auto;bottom:48px}}
+
+.pab{border-top:1px solid #2c3c4d;padding-top:5px}.pstats .ca{color:#ff6a3d}.pstats .cb{color:#45a8ff}
