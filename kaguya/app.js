@@ -267,9 +267,9 @@ function renderChart(){
  <p class="pnote">標高は基準半径 1737.4 km からの高さ。元データの間隔は約1.9 km なので、小さなクレーターは浅く見えます。${exaggeration>1?'（起伏の強調は図のみ。グラフは実際の値）':''}</p>`;
  const svg=$('pchart');svg.addEventListener('pointermove',e=>{const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W;const d=THREE.MathUtils.clamp((x-L)/(W-L-Rr),0,1)*km;const p=pts[Math.round(d/km*(pts.length-1))];const l=$('phl');l.setAttribute('x1',X(p.d));l.setAttribute('x2',X(p.d));l.setAttribute('visibility','visible');readout(p.lat,p.lon);$('distance').textContent=`A から ${p.d.toFixed(1)} km`;});
 }
-$('measureBtn').onclick=()=>{measuring=!measuring;document.body.classList.toggle('measuring',measuring);$('measureBtn').classList.toggle('on',measuring);$('measureBtn').textContent=measuring?'測定をやめる':'2点を選んで断面図';if(measuring){mpts=[];drawProfile();$('profile').hidden=false;$('profileBody').innerHTML='<p class="pmsg">月面の1点目（<b style="color:#ff6a3d">A</b>）をクリックしてください。</p>';toast('月面を2回クリックすると、その間の断面図が出ます');}};
+$('measureBtn').onclick=()=>{measuring=!measuring;document.body.classList.toggle('measuring',measuring);$('measureTool').classList.toggle('on',measuring);$('measureBtn').classList.toggle('on',measuring);$('measureBtn').textContent=measuring?'測定をやめる':'2点を選んで断面図';if(measuring){mpts=[];drawProfile();$('profile').hidden=false;$('profileBody').innerHTML='<p class="pmsg">月面の1点目（<b style="color:#ff6a3d">A</b>）をクリックしてください。</p>';toast('月面を2回クリックすると、その間の断面図が出ます');}};
 $('profileMin').onclick=()=>{const m=$('profile').classList.toggle('mini');$('profileMin').textContent=m?'グラフ':'小さく';};
-$('profileClose').onclick=()=>{measuring=false;document.body.classList.remove('measuring');mpts=[];drawProfile();$('profile').hidden=true;$('measureBtn').classList.remove('on');$('measureBtn').textContent='2点を選んで断面図';};
+$('profileClose').onclick=()=>{measuring=false;document.body.classList.remove('measuring');$('measureTool').classList.remove('on');mpts=[];drawProfile();$('profile').hidden=true;$('measureBtn').classList.remove('on');$('measureBtn').textContent='2点を選んで断面図';};
 
 /* ===== 日付の太陽：平均軌道要素による近似（誤差 約1〜2°、秤動は無視） ===== */
 function sunInfo(date){const T=(date.getTime()/86400000+2440587.5-2451545)/36525,n=x=>((x%360)+360)%360;
@@ -282,3 +282,8 @@ function updateSun(){const v=$('sunDate').value;if(!v)return;sunNow=sunInfo(new 
 $('sunDate').onchange=updateSun;
 $('realSun').onchange=()=>{const on=$('realSun').checked;$('sun').disabled=on;$('sunDateRow').hidden=!on;if(on){updateSun();toast('その日の夜9時（日本時間）の太陽の向きで照らしています');}};
 $('earthView').onclick=()=>{if(!ready)return;if(mode==='terrain')globeView(0,0,3.3);else fly(direction(0,0).multiplyScalar(3.3),new THREE.Vector3());};
+
+/* 右の操作ボタンからも断面図を始められるようにする（スマホでも常に見える） */
+$('measureTool').onclick=()=>$('measureBtn').click();
+/* 指で操作する端末では、操作の説明を指の言葉にする */
+if(matchMedia('(pointer: coarse)').matches){const g=document.querySelector('.gesture');if(g)g.innerHTML='<span>1本指 <b>回転・角度</b></span><span>2本指でつまむ <b>拡大・縮小</b></span><span>2本指でずらす <b>平行移動</b></span>';}
