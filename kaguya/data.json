@@ -1,0 +1,18 @@
+{
+  "width": 5760,
+  "height": 2880,
+  "firstLon": 0.03125,
+  "firstLat": 89.96875,
+  "stepDegrees": 0.0625,
+  "unit": "metres",
+  "encoding": "int16-le",
+  "radiusKm": 1737.4,
+  "minKm": -9.0200834274292,
+  "maxKm": 10.715779304504395,
+  "source": "https://data.darts.isas.jaxa.jp/pub/pds3/sln-l-lalt-5-topo-ggt-map-v2.0/data/LALT_GGT_MAP.IMG",
+  "dataset": "SLN-L-LALT-5-TOPO-GGT-MAP-V2.0",
+  "processing": "Native grid retained; elevations rounded from km to signed integer metres. Mesh samples are bilinearly interpolated.",
+  "textureSource": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_8k.tif",
+  "textureWidth": 8192,
+  "textureHeight": 4096
+}
