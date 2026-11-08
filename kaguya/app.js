@@ -267,9 +267,9 @@ function renderChart(){
  <p class="pnote">標高は基準半径 1737.4 km からの高さ。元データの間隔は約1.9 km なので、小さなクレーターは浅く見えます。${exaggeration>1?'（起伏の強調は図のみ。グラフは実際の値）':''}</p>`;
  const svg=$('pchart');svg.addEventListener('pointermove',e=>{const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W;const d=THREE.MathUtils.clamp((x-L)/(W-L-Rr),0,1)*km;const p=pts[Math.round(d/km*(pts.length-1))];const l=$('phl');l.setAttribute('x1',X(p.d));l.setAttribute('x2',X(p.d));l.setAttribute('visibility','visible');readout(p.lat,p.lon);$('distance').textContent=`A から ${p.d.toFixed(1)} km`;});
 }
-$('measureBtn').onclick=()=>{measuring=!measuring;$('measureBtn').classList.toggle('on',measuring);$('measureBtn').textContent=measuring?'測定をやめる':'2点を選んで断面図';if(measuring){mpts=[];drawProfile();$('profile').hidden=false;$('profileBody').innerHTML='<p class="pmsg">月面の1点目（<b style="color:#ff6a3d">A</b>）をクリックしてください。</p>';toast('月面を2回クリックすると、その間の断面図が出ます');}};
+$('measureBtn').onclick=()=>{measuring=!measuring;document.body.classList.toggle('measuring',measuring);$('measureBtn').classList.toggle('on',measuring);$('measureBtn').textContent=measuring?'測定をやめる':'2点を選んで断面図';if(measuring){mpts=[];drawProfile();$('profile').hidden=false;$('profileBody').innerHTML='<p class="pmsg">月面の1点目（<b style="color:#ff6a3d">A</b>）をクリックしてください。</p>';toast('月面を2回クリックすると、その間の断面図が出ます');}};
 $('profileMin').onclick=()=>{const m=$('profile').classList.toggle('mini');$('profileMin').textContent=m?'グラフ':'小さく';};
-$('profileClose').onclick=()=>{measuring=false;mpts=[];drawProfile();$('profile').hidden=true;$('measureBtn').classList.remove('on');$('measureBtn').textContent='2点を選んで断面図';};
+$('profileClose').onclick=()=>{measuring=false;document.body.classList.remove('measuring');mpts=[];drawProfile();$('profile').hidden=true;$('measureBtn').classList.remove('on');$('measureBtn').textContent='2点を選んで断面図';};
 
 /* ===== 日付の太陽：平均軌道要素による近似（誤差 約1〜2°、秤動は無視） ===== */
 function sunInfo(date){const T=(date.getTime()/86400000+2440587.5-2451545)/36525,n=x=>((x%360)+360)%360;

@@ -34,3 +34,7 @@ h1 em{font-size:12.5px;letter-spacing:.02em;font-style:normal;color:var(--accent
 @media(max-width:700px){#profile{left:8px;right:8px;width:auto;bottom:48px}}
 
 .pab{border-top:1px solid #2c3c4d;padding-top:5px}.pstats .ca{color:#ff6a3d}.pstats .cb{color:#45a8ff}
+
+/* 測定中は地名ラベルがクリックを横取りしないようにする */
+body.measuring #labels .map-label{pointer-events:none;opacity:.6}
+body.measuring #viewport canvas{cursor:crosshair!important}
