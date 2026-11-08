@@ -246,6 +246,7 @@ function drawProfile(){
 function addMeasurePoint(ll){if(mpts.length>=2)mpts=[];mpts.push({lat:ll.lat,lon:ll.lon});drawProfile();
  if(mpts.length===1){$('profile').hidden=false;$('profileBody').innerHTML='<p class="pmsg">2点目（<b style="color:#45a8ff">B</b>）をクリックしてください。</p>';return;}
  renderChart();}
+function fmtH(h){return `${h>=0?'+':''}${h.toFixed(2)} km`;}
 function renderChart(){
  const {pts,km}=profileSamples(mpts[0],mpts[1]),hs=pts.map(p=>p.h),lo=Math.min(...hs),hi=Math.max(...hs);
  const W=560,H=190,L=46,Rr=12,T=14,Bm=30,pad=Math.max(.2,(hi-lo)*.12),y0=lo-pad,y1=hi+pad;
@@ -257,7 +258,7 @@ function renderChart(){
  for(let v=Math.ceil(y0/sy)*sy;v<=y1;v+=sy)grid+=`<line x1="${L}" x2="${W-Rr}" y1="${Y(v)}" y2="${Y(v)}" class="gl"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end">${+v.toFixed(2)}</text>`;
  for(let v=0;v<=km+1e-9;v+=sx)grid+=`<text x="${X(v)}" y="${H-Bm+16}" text-anchor="middle">${+v.toFixed(1)}</text>`;
  const iMax=hs.indexOf(hi),iMin=hs.indexOf(lo);
- $('profileBody').innerHTML=`<div class="pstats"><span>距離 <b>${km>=10?km.toFixed(0):km.toFixed(1)} km</b></span><span>最高 <b>${hi>=0?'+':''}${hi.toFixed(2)} km</b></span><span>最低 <b>${lo>=0?'+':''}${lo.toFixed(2)} km</b></span><span>高低差 <b>${(hi-lo).toFixed(2)} km</b></span></div>
+ $('profileBody').innerHTML=`<div class="pstats"><span>距離 <b>${km>=10?km.toFixed(0):km.toFixed(1)} km</b></span><span>最高 <b>${hi>=0?'+':''}${hi.toFixed(2)} km</b></span><span>最低 <b>${lo>=0?'+':''}${lo.toFixed(2)} km</b></span><span>最高と最低の差 <b>${(hi-lo).toFixed(2)} km</b></span></div><div class="pstats pab"><span><b class="ca">A</b> の標高 <b>${fmtH(hs[0])}</b></span><span><b class="cb">B</b> の標高 <b>${fmtH(hs[hs.length-1])}</b></span><span>A と B の差 <b>${Math.abs(hs[hs.length-1]-hs[0]).toFixed(2)} km</b>（${hs[hs.length-1]>hs[0]+0.005?'B のほうが高い':hs[0]>hs[hs.length-1]+0.005?'A のほうが高い':'ほぼ同じ高さ'}）</span></div>
  <svg viewBox="0 0 ${W} ${H}" class="pchart" id="pchart">${grid}<path d="${area}" class="parea"/><path d="${line}" class="pline"/>
  <circle cx="${X(pts[iMax].d)}" cy="${Y(hi)}" r="3.5" class="pmax"/><circle cx="${X(pts[iMin].d)}" cy="${Y(lo)}" r="3.5" class="pmin"/>
  <text x="${X(0)+4}" y="${T+10}" class="pa">A</text><text x="${X(km)-4}" y="${T+10}" text-anchor="end" class="pb">B</text>
