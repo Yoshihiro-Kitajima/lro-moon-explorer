@@ -207,7 +207,7 @@ async function boot(){
  globe=new THREE.Mesh(geometry(),material);scene.add(globe);ambient=new THREE.AmbientLight(0xffffff,1);sun=new THREE.DirectionalLight(0xfff5e7,2.5);scene.add(ambient,sun);
  marker=new THREE.Mesh(new THREE.SphereGeometry(.004,12,8),new THREE.MeshBasicMaterial({color:0xf2d0a0}));scene.add(marker);makeGrid();createLandingRings();
  for(const place of places){const el=document.createElement('button');el.className='map-label';el.textContent=place.name;el.addEventListener('click',()=>choose(place));$('labels').appendChild(el);labelItems.push({el,place});}
- ready=true;selected={...places[0]};globeView();loadFull();transition=null;$('viewTitle').textContent='月の表側';$('viewSub').textContent='ドラッグして、月の裏側へ。';readout(selected.lat,selected.lon);$('loading').hidden=true;resize();new ResizeObserver(resize).observe($('viewport'));requestAnimationFrame(animate);wireCanvas();
+ ready=true;selected={...places[0]};{const q=new URLSearchParams(location.search),f=k=>parseFloat(q.get(k)),la=f('lat'),lo=f('lon');if(isFinite(la)&&isFinite(lo)){selected={lat:la,lon:lo,name:q.get('name')||'選んだ月面'};$('lat').value=la.toFixed(3);$('lon').value=lo.toFixed(3);const cl=f('clat'),co=f('clon'),d=f('d');globeView(isFinite(cl)?cl:la,isFinite(co)?co:lo,isFinite(d)?Math.min(7,Math.max(1.13,d)):3.3);updateMarker();document.querySelectorAll('#places button').forEach(el=>el.classList.toggle('selected',el.textContent.startsWith(selected.name)));if(q.get('view')==='terrain')terrainView();}else globeView();}loadFull();transition=null;$('viewTitle').textContent='月の表側';$('viewSub').textContent='ドラッグして、月の裏側へ。';readout(selected.lat,selected.lon);$('loading').hidden=true;resize();new ResizeObserver(resize).observe($('viewport'));requestAnimationFrame(animate);wireCanvas();
  }catch(e){console.error(e);$('loadText').textContent='月面を読み込めませんでした。通信環境とWebGLを確認して、再読み込みしてください。';const b=document.createElement('button');b.textContent='再読み込み';b.style.padding='10px 20px';b.onclick=()=>location.reload();$('loading').appendChild(b);status('読み込みエラー');}
 }
 function wireCanvas(){let down=null;const canvas=renderer.domElement;canvas.style.cursor='grab';const hand=e=>{canvas.style.cursor=e.buttons?'grabbing':nearbyLandingSites(e).length?'pointer':'grab';};canvas.addEventListener('pointercancel',()=>{canvas.style.cursor='grab';down=null;});canvas.addEventListener('pointerdown',e=>{hand(e);down={x:e.clientX,y:e.clientY};});canvas.addEventListener('pointerup',e=>{hand(e);if(e.button!==0||!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)return;if(measuring){const m=hit(e);if(m)addMeasurePoint(m);return;}if(showLandingName(e))return;const ll=hit(e);if(ll){readout(ll.lat,ll.lon);if(mode==='globe'){selected={...ll,name:'選んだ月面'};$('lat').value=ll.lat.toFixed(3);$('lon').value=ll.lon.toFixed(3);updateMarker();document.querySelectorAll('#places button').forEach(el=>el.classList.remove('selected'));}}});canvas.addEventListener('dblclick',e=>{if(measuring)return;const ll=hit(e);if(ll)choose({...ll,name:'選んだ月面'},true);});canvas.addEventListener('pointermove',e=>{hand(e);if(e.buttons||performance.now()-lastHover<90)return;lastHover=performance.now();const ll=hit(e);if(ll){readout(ll.lat,ll.lon);}});canvas.addEventListener('pointerleave',()=>readout(selected.lat,selected.lon));}
@@ -287,3 +287,13 @@ $('earthView').onclick=()=>{if(!ready)return;if(mode==='terrain')globeView(0,0,3
 $('measureTool').onclick=()=>$('measureBtn').click();
 /* 指で操作する端末では、操作の説明を指の言葉にする */
 if(matchMedia('(pointer: coarse)').matches){const g=document.querySelector('.gesture');if(g)g.innerHTML='<span>1本指 <b>回転・角度</b></span><span>2本指でつまむ <b>拡大・縮小</b></span><span>2本指でずらす <b>平行移動</b></span>';}
+
+/* ===== ヘッダーの［LRO版｜かぐや版］切り替え：見ている場所と表示モードを引き継ぐ ===== */
+document.querySelectorAll('.ed-switch a[data-ed]').forEach(a=>a.addEventListener('click',e=>{
+ if(!ready)return;e.preventDefault();
+ const u=new URL(a.getAttribute('href'),location.href),p=camera.position,c=lonLat(p.x,p.y,p.z);
+ u.searchParams.set('lat',selected.lat.toFixed(3));u.searchParams.set('lon',selected.lon.toFixed(3));
+ if(selected.name)u.searchParams.set('name',selected.name);u.searchParams.set('view',mode);
+ if(mode==='globe'){u.searchParams.set('clat',c.lat.toFixed(2));u.searchParams.set('clon',c.lon.toFixed(2));u.searchParams.set('d',p.length().toFixed(2));}
+ location.href=u.toString();
+}));
