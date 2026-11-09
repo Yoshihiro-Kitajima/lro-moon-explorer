@@ -201,7 +201,7 @@ async function boot(){
  const json=await fetch('./data.json');if(!json.ok)throw Error('データ情報を取得できません');meta=await json.json();
  const low=await fetch('./kaguya-height-low.i16');if(!low.ok)throw Error('標高データを読み込めません');heightData=new Int16Array(await low.arrayBuffer());tick();
  if(heightData.length!==hdW*hdH)throw Error('標高データの大きさが一致しません');
- texture=await new THREE.TextureLoader().loadAsync('../claude/moon-color-2k.jpg');tick();texture.colorSpace=THREE.SRGBColorSpace;texture.wrapS=THREE.RepeatWrapping;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+ texture=await new THREE.TextureLoader().loadAsync('../moon-color-2k.jpg');tick();texture.colorSpace=THREE.SRGBColorSpace;texture.wrapS=THREE.RepeatWrapping;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
  material=new THREE.MeshStandardMaterial({map:texture,roughness:1,metalness:0});
  $('loadText').textContent='実測標高から月面を組み立てています…';await new Promise(r=>setTimeout(r,30));
  globe=new THREE.Mesh(geometry(),material);scene.add(globe);ambient=new THREE.AmbientLight(0xffffff,1);sun=new THREE.DirectionalLight(0xfff5e7,2.5);scene.add(ambient,sun);

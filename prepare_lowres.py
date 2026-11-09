@@ -6,9 +6,9 @@ import numpy as np
 from PIL import Image
 root = Path(__file__).parent
 W, H = 5760, 2880
-h = np.concatenate([np.fromfile(root.parent / f'lro-height-{i}.i16', dtype='<i2') for i in range(4)]).reshape(H, W)
+h = np.concatenate([np.fromfile(root / f'lro-height-{i}.i16', dtype='<i2') for i in range(4)]).reshape(H, W)
 low = np.rint(h.reshape(720, 4, 1440, 4).astype(np.float32).mean(axis=(1, 3))).astype('<i2')
 low.tofile(root / 'lro-height-low.i16')
-Image.open(root.parent / 'moon-color.jpg').resize((2048, 1024), Image.LANCZOS).save(root / 'moon-color-2k.jpg', quality=84, optimize=True)
+Image.open(root / 'moon-color.jpg').resize((2048, 1024), Image.LANCZOS).save(root / 'moon-color-2k.jpg', quality=84, optimize=True)
 assert abs(low[360, 700] - h[1440:1444, 2800:2804].mean()) <= .5
 print('PASS: lro-height-low.i16 (1440x720) と moon-color-2k.jpg を作成')

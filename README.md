@@ -27,3 +27,13 @@ Python（numpy・Pillow）で `prepare_data.py` を実行するとNASAの標高�
 ## 権利表記
 アプリのソースコードには独自のオープンソースライセンスを指定していません。
 Three.jsはMITライセンス（THREE-LICENSE.txt）。観測データ・画像は上記NASA出典と各提供元の利用条件を参照してください。
+
+## 公開ページの構成（2026-11-09 から）
+| URL | 中身 |
+|---|---|
+| `/` | Claude 改良版（LRO）：すぐ表示・断面図（A・B の標高と差）・日付の太陽・スマホ対応 |
+| `/kaguya/` | Claude 改良版（かぐや LALT の標高） |
+| `/codex/` | もとの版（Codex で作成） |
+| `/claude/` | 以前の URL。トップ `/` へ移動します |
+
+標高データ・8K画像・three.js はリポジトリ直下のものを全版で共有しています。最初に表示する軽いデータは `python prepare_lowres.py` で作り直せます。
